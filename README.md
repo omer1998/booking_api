@@ -1,5 +1,5 @@
-# booking_api
-# Intelligent Doctor Booking Management System
+
+# [booking_api] Intelligent Doctor Booking Management System
 
 ## 🏥 Project Overview
 digital healthcare platform designed to revolutionize the way patients access medical services and how healthcare providers manage their practices.
