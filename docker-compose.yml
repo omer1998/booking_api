@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgis/postgis
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+    ports: 
+      - ${DB_PORT}:5432 # host port: container port
+    volumes:
+      - pgdata:/var/lib/postgresql/data 
+  
+  db_test:
+    image: postgis/postgis
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+    ports: 
+      - ${DB_PORT_TEST}:5432 # host port: container port
+
+volumes:
+  pgdata:
