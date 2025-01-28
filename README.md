@@ -65,3 +65,8 @@ To bridge the gap between patients and healthcare providers by creating a seamle
 - Role-based access control
 - Data encryption
 - Comprehensive input validation
+
+- ## features to implement
+- chatting system; to improve communication between doctors and patients
+- advice and guidance for patient to get the best suited care for them
+- review and professional/imapct score
