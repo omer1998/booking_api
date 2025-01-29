@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -284,4 +285,122 @@ func (db *PostgresDb) UpdateClinicInfo(doctorInfo utils.DoctorClinicInfoRequest)
 		return nil, &utils.ApiError{Code: http.StatusNotFound, Error: "Clinic not found"}
 	}
 	return clinicInfo, nil
+}
+
+// creating booking functionalities
+func (db *PostgresDb) CreateSchedule(date []time.Time, doctorId int, startTime time.Time, endTime time.Time, appointmentDuration time.Duration) *utils.ApiError {
+	if len(date) == 0 {
+		return utils.NewError("Date length is zero !!", http.StatusBadRequest)
+	}
+	tx, err := db.connPool.Begin(db.cxt)
+	if err != nil {
+		return utils.NewError(fmt.Sprintf("Error starting transaction: %v", err.Error()), http.StatusInternalServerError)
+	}
+	defer tx.Rollback(db.cxt)
+	for _, v := range date {
+		fmt.Print(v)
+		beginTime := startTime
+		for beginTime.Before(endTime) {
+			_, err = tx.Exec(db.cxt,
+				` insert into 
+				doctor_schedules (date, start_time, end_time, status, doctor_id) values ($1, $2, $3, $4, $5)  `,
+				time.Date(2025, 1, 29, 0, 0, 0, 0, time.Local), beginTime, beginTime.Add(appointmentDuration), utils.Available, doctorId)
+			if err != nil {
+
+				return utils.NewError(fmt.Sprintf("Error inserting schedule: %v", err.Error()), http.StatusInternalServerError)
+			}
+			beginTime = beginTime.Add(appointmentDuration)
+		}
+
+	}
+
+	err = tx.Commit(db.cxt)
+	if err != nil {
+		return utils.NewError(fmt.Sprintf("Error committing transaction: %v", err.Error()), http.StatusInternalServerError)
+	}
+	return nil
+
+}
+
+func (db *PostgresDb) GetAvailableTimeSlot(doctorId int, date []time.Time) ([]utils.Schedule, *utils.ApiError) {
+	allScheules := make([]utils.Schedule, 0)
+	for _, v := range date {
+		tx, err := db.connPool.Begin(db.cxt)
+		defer tx.Rollback(db.cxt)
+		if err != nil {
+			return nil, utils.NewError(fmt.Sprintf("Error starting transaction: %v", err.Error()), http.StatusInternalServerError)
+		}
+		rows, err := tx.Query(db.cxt,
+			`select * from doctor_schedules where doctor_id = $1 and date = $2`, doctorId, v)
+		if err != nil {
+			tx.Rollback(db.cxt)
+			return nil, utils.NewError(fmt.Sprintf("Error querying schedules: %v", err.Error()), http.StatusInternalServerError)
+		}
+		schedule := new(utils.Schedule)
+		for rows.Next() {
+			err = rows.Scan(&schedule.Id, &schedule.Date, &schedule.StartTime, &schedule.EndTime, &schedule.Status, &schedule.DoctorId)
+			if err != nil {
+				return nil, utils.NewError(fmt.Sprintf("Error Scanning Scheules %v", err.Error()), http.StatusInternalServerError)
+			}
+			allScheules = append(allScheules, *schedule)
+		}
+	}
+	return allScheules, nil
+}
+
+func (db *PostgresDb) BookSlot(patientId int, scheduleId int) *utils.ApiError {
+	_, err := db.connPool.Exec(db.cxt, `update doctor_schedules status= $1 where id = $2`, utils.Booked, scheduleId)
+	if err != nil {
+		return utils.NewError(fmt.Sprintf("Error booking slot: %v", err.Error()), http.StatusInternalServerError)
+	}
+	return nil
+}
+
+func (db *PostgresDb) CancelSlot(scheduleId int) *utils.ApiError {
+	_, err := db.connPool.Exec(db.cxt, `update doctor_schedules status= $1 where id = $2`, utils.Available, scheduleId)
+	if err != nil {
+		return utils.NewError(fmt.Sprintf("Error canceling slot: %v", err.Error()), http.StatusInternalServerError)
+	}
+	return nil
+}
+func (db *PostgresDb) GetDoctorSchedules(doctorId int, startDate time.Time, endDate *time.Time) ([]utils.Schedule, *utils.ApiError) {
+	allSchedules := make([]utils.Schedule, 0)
+	if endDate == nil {
+		rows, err := db.connPool.Query(db.cxt, `select * from doctor_schedules where doctor_id =$1 and date =$2 order by start_time asc`, doctorId, startDate)
+		if err != nil && err != pgx.ErrNoRows {
+			return nil, utils.NewError(fmt.Sprintf("Error querying schedules: %v", err.Error()), http.StatusInternalServerError)
+		}
+		if err == pgx.ErrNoRows {
+			return allSchedules, nil
+		}
+
+		for rows.Next() {
+			schedule := new(utils.Schedule)
+			err = rows.Scan(&schedule.Id, &schedule.Date, &schedule.StartTime, &schedule.EndTime, &schedule.Status, &schedule.PatientId, &schedule.DoctorId, &schedule.CreatedAt)
+			if err != nil {
+				return nil, utils.NewError(fmt.Sprintf("Error Scanning Scheules %v", err.Error()), http.StatusInternalServerError)
+			}
+			allSchedules = append(allSchedules, *schedule)
+		}
+	} else {
+		rows, err := db.connPool.Query(db.cxt, `select * from doctor_schedules where doctor_id =$1 and date between $2 and $3 order by date asc`, doctorId, startDate, endDate)
+		if err != nil && err != pgx.ErrNoRows {
+			return nil, utils.NewError(fmt.Sprintf("Error querying schedules: %v", err.Error()), http.StatusInternalServerError)
+		}
+		if err == pgx.ErrNoRows {
+			return allSchedules, nil
+		}
+
+		for rows.Next() {
+			schedule := new(utils.Schedule)
+			err = rows.Scan(&schedule.Id, &schedule.Date, &schedule.StartTime, &schedule.EndTime, &schedule.Status, &schedule.PatientId, &schedule.DoctorId, &schedule.CreatedAt)
+			if err != nil {
+				return nil, utils.NewError(fmt.Sprintf("Error Scanning Scheules %v", err.Error()), http.StatusInternalServerError)
+			}
+			allSchedules = append(allSchedules, *schedule)
+		}
+
+	}
+
+	return allSchedules, nil
 }

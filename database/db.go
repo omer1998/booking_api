@@ -11,7 +11,7 @@ type Database interface {
 	GetDoctors() ([]utils.Doctor, *utils.ApiError)
 	GetDoctorByEmail(email string) (*utils.Doctor, *utils.ApiError)
 	DoctorDetail
-	// ScheduleManagement
+	ScheduleManagement
 }
 
 type DoctorDetail interface {
@@ -32,7 +32,7 @@ type ScheduleManagement interface {
 	// here we need to complete patient registration
 	BookSlot(patientId int, scheduleId int) *utils.ApiError
 	CancelSlot(scheduleId int) *utils.ApiError
-	GetDoctorSchedules(doctorId int, startDate time.Time, endDate time.Time) ([]utils.Schedule, *utils.ApiError)
+	GetDoctorSchedules(doctorId int, startDate time.Time, endDate *time.Time) ([]utils.Schedule, *utils.ApiError)
 }
 
 // func RunDb(cxt context.Context) *pgx.Conn {
