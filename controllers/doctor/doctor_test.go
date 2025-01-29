@@ -226,21 +226,22 @@ func TestAddAndGetClinicInfo(t *testing.T) {
 }
 
 func TestUpdateClinicInfo(t *testing.T) {
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Error("Error getting working directory")
-	}
-	t.Log("Working directory: ", wd)
+	// wd, err := os.Getwd()
+	// if err != nil {
+	// 	t.Error("Error getting working directory")
+	// }
+	// t.Log("Working directory: ", wd)
 
-	path := filepath.Join(wd, "..", ".env")
-	if os.IsNotExist(err) {
-		t.Error(".env file does not exist")
-	} else if err != nil {
-		t.Errorf("Error accessing .env file: %v", err)
-	} else {
-		t.Log(".env file exists")
-		t.Log("Path: ", path)
-	}
+	// path := filepath.Join(wd, "..", "..", ".env")
+	// if os.IsNotExist(err) {
+	// 	t.Error(".env file does not exist")
+	// } else if err != nil {
+	// 	t.Errorf("Error accessing .env file: %v", err)
+	// } else {
+	// 	t.Log(".env file exists")
+	// 	t.Log("Path: ", path)
+	// }
+	path := getEnvPath("..", "..")
 	testEnv := fixtures.NewTestEnv(t, path)
 	testEnv.SetUpDb()
 	t.Cleanup(testEnv.TearDownDb)
@@ -297,4 +298,29 @@ func TestUpdateClinicInfo(t *testing.T) {
 		t.Error("Error updating clinic info", updateErr)
 	}
 	t.Log("Updated Clinic Info: ", newInfo)
+}
+
+// you need to update the path of the .env file to make the test work
+// a function to get the path of the .env file
+// where path is the steps (folder name) to get to the .env file
+func getEnvPath(paths ...string) string {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic("Error getting working directory")
+	}
+	for _, path := range paths {
+		wd = filepath.Join(wd, path)
+
+	}
+
+	wd = filepath.Join(wd, ".env")
+	return wd
+
+}
+func TestGetEnvPath(t *testing.T) {
+	path := getEnvPath("..", "..")
+	actualPathToEnv := `c:\Users\master\Desktop\booking_api\.env`
+	t.Log("Path: ", path)
+	assert.Equal(t, actualPathToEnv, path)
+
 }

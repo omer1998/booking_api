@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/omer1998/booking_api/controllers/doctor"
 	"github.com/omer1998/booking_api/database"
-	"github.com/omer1998/booking_api/doctor"
 	"github.com/omer1998/booking_api/services"
 	"github.com/omer1998/booking_api/utils"
 )

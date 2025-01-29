@@ -18,7 +18,7 @@ type TestEnv struct {
 	Config   config.Config
 	Db       database.Database
 	T        *testing.T
-	connPool *pgxpool.Pool
+	ConnPool *pgxpool.Pool
 }
 
 func NewTestEnv(t *testing.T, path string) *TestEnv {
@@ -30,11 +30,11 @@ func NewTestEnv(t *testing.T, path string) *TestEnv {
 	pool := database.ConnectPool(context.Background(), conf)
 	db := database.NewPostgresDbPool(pool, context.Background())
 
-	return &TestEnv{Db: db, Config: *conf, T: t, connPool: pool}
+	return &TestEnv{Db: db, Config: *conf, T: t, ConnPool: pool}
 }
 
 func (t *TestEnv) SetUpDb() {
-	m, err := migrate.New("file://../migrations", t.Config.GetConnectionDbUrl())
+	m, err := migrate.New("file://../../migrations", t.Config.GetConnectionDbUrl())
 
 	if err != nil {
 		t.T.Errorf("Error creating migrating instance %s", err.Error())
@@ -48,7 +48,7 @@ func (t *TestEnv) SetUpDb() {
 
 func (t *TestEnv) TearDownDb() {
 	// we will only drop the data from all tables (first for doctor table)
-	_, err := t.connPool.Exec(context.Background(), "TRUNCATE TABLE doctors CASCADE")
+	_, err := t.ConnPool.Exec(context.Background(), "TRUNCATE TABLE doctors CASCADE")
 	if err != nil {
 		t.T.Errorf("Error truncating table %s", err.Error())
 	}
